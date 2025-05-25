@@ -1,10 +1,13 @@
 import React from 'react';
-import {Text,View} from 'react-native';
+import { GlobalProvider } from './context/GlobalState';
+import AppNavigator from './AppNavigator/AppNavigator';
 
-export default () => {
-    return (
-        <View>
-            <Text>IMPLEMENT ME!</Text>
-        </View>
-    )
-}
+const App: React.FC = () => {
+  return (
+    <GlobalProvider>
+      <AppNavigator />
+    </GlobalProvider>
+  );
+};
+
+export default App;

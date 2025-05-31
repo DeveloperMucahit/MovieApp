@@ -48,7 +48,6 @@ const SearchScreen: React.FC = () => {
 
   const [genreFilterActive, setGenreFilterActive] = useState(false);
   const [ratingFilterActive, setRatingFilterActive] = useState(false);
-
   const [genres, setGenres] = useState<Genre[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);

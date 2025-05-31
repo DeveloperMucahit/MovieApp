@@ -93,23 +93,23 @@ const FavoritesScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={themeStyles.favoriteContainer}>
+    <SafeAreaView style={themeStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
 
       {/* Search and Filter Buttons */}
-      <View style={themeStyles.favoriteFilterContainer}>
-        <TouchableOpacity onPress={() => setSearchActive(!searchActive)} style={themeStyles.filterButton}>
-          <Text style={themeStyles.filterButtonText}>Search</Text>
+      <View style={themeStyles.searchMoviesButtonsRow}>
+        <TouchableOpacity onPress={() => setSearchActive(!searchActive)} style={themeStyles.searchMoviesBtn}>
+          <Text style={themeStyles.searchMoviesBtnText}>Search</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setFilterActive(!filterActive)} style={themeStyles.filterButton}>
-          <Text style={themeStyles.filterButtonText}>Filter</Text>
+        <TouchableOpacity onPress={() => setFilterActive(!filterActive)} style={themeStyles.searchMoviesBtn}>
+          <Text style={themeStyles.searchMoviesBtnText}>Filter</Text>
         </TouchableOpacity>
       </View>
 
       {/* Search Input */}
       {searchActive && (
         <TextInput
-          style={themeStyles.searchInput}
+          style={themeStyles.searchMoviesSearchContainer}
           placeholder="Search by title..."
           value={searchQuery}
           onChangeText={setSearchQuery}

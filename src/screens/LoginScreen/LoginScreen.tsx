@@ -51,7 +51,6 @@ const LoginScreen: React.FC = () => {
         setError("Login failed. Please check your credentials.");
         return;
       }
-      navigation.navigate("HomeMain");
     } catch (err: any) {
       console.error(err);
 

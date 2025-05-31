@@ -2,7 +2,6 @@
 
 MovieLibraryApp, React Native kullanılarak geliştirilmiş, kullanıcıların popüler filmleri keşfedebileceği, favorilerine ekleyebileceği ve detaylı film bilgilerine ulaşabileceği kapsamlı bir mobil uygulamadır. Firebase ile kullanıcı kimlik doğrulaması yapılmakta ve TMDb (The Movie Database) API’si ile güncel film verileri sağlanmaktadır.
 
----
 
 ## Özellikler
 
@@ -14,7 +13,6 @@ MovieLibraryApp, React Native kullanılarak geliştirilmiş, kullanıcıların p
 - Kullanıcı profili yönetimi  
 - Modern ve kullanıcı dostu arayüz  
 
----
 
 ## Teknolojiler
 
@@ -30,22 +28,22 @@ MovieLibraryApp, React Native kullanılarak geliştirilmiş, kullanıcıların p
 Projeyi kendi cihazınızda çalıştırmak için aşağıdaki adımları izleyin:
 
 
-# Depoyu klonlayın
+## Depoyu klonlayın
 git clone https://github.com/DeveloperMucahit/MovieApp
 
-# Proje dizinine gidin
+## Proje dizinine gidin
 cd MovieLibraryApp
 
-# Bağımlılıkları yükleyin
+## Bağımlılıkları yükleyin
 npm install
-# veya
+## veya
 yarn install
 
-# Firebase config dosyasını (firebaseConfig.js) oluşturun ve kendi projenize ait ayarları ekleyin.
+## Firebase config dosyasını (firebaseConfig.js) oluşturun ve kendi projenize ait ayarları ekleyin.
 
-# Android veya iOS cihazınızda projeyi başlatın
+## Android veya iOS cihazınızda projeyi başlatın
 npx react-native run-android
-# veya
+## veya
 npx react-native run-ios
 
 

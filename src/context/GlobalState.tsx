@@ -1,4 +1,15 @@
-import React, { createContext, useReducer, useContext, ReactNode, Dispatch } from 'react';
+import { User } from "@firebase/auth";
+import React, {
+  createContext,
+  useReducer,
+  useContext,
+  ReactNode,
+  Dispatch,
+  useEffect,
+} from "react";
+import { ActivityIndicator, Alert, View } from "react-native";
+import { auth } from "../Firebase/FirebaseConfig";
+
 
 export interface Genre {
   id: number;
@@ -57,7 +68,6 @@ export interface Movie {
       profile_path: string | null;
     }[];
   };
-  
 }
 
 export interface GlobalState {
@@ -65,6 +75,7 @@ export interface GlobalState {
   selectedMovieId: number | null;
   favorites: Movie[];
   genres: Genre[];
+  user: User;
 }
 
 const initialState: GlobalState = {
@@ -75,81 +86,104 @@ const initialState: GlobalState = {
       belongs_to_collection: null,
       budget: 0,
       genres: [],
-      homepage: '',
+      homepage: "",
       id: 1229244,
-      imdb_id: 'tt28331533',
-      origin_country: ['US'],
-      original_language: 'en',
-      original_title: 'The Seductress From Hell',
-      overview: 'A Hollywood actress undergoes a horrific transformation after being pushed to the edge by her psychopathic husband.',
+      imdb_id: "tt28331533",
+      origin_country: ["US"],
+      original_language: "en",
+      original_title: "The Seductress From Hell",
+      overview:
+        "A Hollywood actress undergoes a horrific transformation after being pushed to the edge by her psychopathic husband.",
       popularity: 0.2196,
-      poster_path: '/Aqs6AACm4gM7jpur7LYO3oXRDQe.jpg',
+      poster_path: "/Aqs6AACm4gM7jpur7LYO3oXRDQe.jpg",
       production_companies: [
-        { id: 237453, logo_path: null, name: 'Garaj Pictures', origin_country: '' },
-        { id: 237454, logo_path: null, name: 'Sacred Ember Films', origin_country: '' },
+        {
+          id: 237453,
+          logo_path: null,
+          name: "Garaj Pictures",
+          origin_country: "",
+        },
+        {
+          id: 237454,
+          logo_path: null,
+          name: "Sacred Ember Films",
+          origin_country: "",
+        },
       ],
       production_countries: [
-        { iso_3166_1: 'US', name: 'United States of America' },
+        { iso_3166_1: "US", name: "United States of America" },
       ],
-      release_date: '2025-05-23',
+      release_date: "2025-05-23",
       revenue: 0,
       runtime: 0,
       spoken_languages: [
-        { english_name: 'English', iso_639_1: 'en', name: 'English' },
+        { english_name: "English", iso_639_1: "en", name: "English" },
       ],
-      status: 'Released',
-      tagline: '',
-      title: 'The Seductress From Hell',
+      status: "Released",
+      tagline: "",
+      title: "The Seductress From Hell",
       video: false,
       vote_average: 0.0,
       vote_count: 0,
       credits: {
         cast: [
-          { 
-            id: 123456, 
-            name: 'Jane Doe', 
-            profile_path: '/path/to/profile.jpg' 
+          {
+            id: 123456,
+            name: "Jane Doe",
+            profile_path: "/path/to/profile.jpg",
           },
-        ]
+        ],
       },
     },
   ],
   selectedMovieId: null,
   favorites: [],
-  genres:[],
+  genres: [],
+  user: {} as User, 
 };
 
+export interface SpokenLanguage {
+  english_name: string;
+  iso_639_1: string;
+  name: string;
+}
 export type Action =
-  | { type: 'SELECT_MOVIE'; payload: number } // Changed to number
-  | { type: 'DESELECT_MOVIE' }
-  | { type: 'ADD_FAVORITE'; payload: Movie }
-  | { type: 'REMOVE_FAVORITE'; payload: number }
-  | { type: 'SET_GENRES'; payload: Genre[] };
+  | { type: "SELECT_MOVIE"; payload: number } 
+  | { type: "DESELECT_MOVIE" }
+  | { type: "ADD_FAVORITE"; payload: Movie }
+  | { type: "REMOVE_FAVORITE"; payload: number }
+  | { type: "SET_GENRES"; payload: Genre[] }
+  | { type: "SET_USER"; payload: User | null }; 
 
 const GlobalStateContext = createContext<GlobalState | undefined>(undefined);
-const GlobalDispatchContext = createContext<Dispatch<Action> | undefined>(undefined);
+const GlobalDispatchContext = createContext<Dispatch<Action> | undefined>(
+  undefined
+);
 
 function reducer(state: GlobalState, action: Action): GlobalState {
   switch (action.type) {
-    case 'SELECT_MOVIE':
+    case "SELECT_MOVIE":
       return { ...state, selectedMovieId: action.payload };
 
-    case 'DESELECT_MOVIE':
-      return { ...state, selectedMovieId: null };
+    case "SET_USER":
+      return { ...state, user: action.payload || {} as User };
 
-    case 'ADD_FAVORITE':
+    case "DESELECT_MOVIE":
+      return { ...state, selectedMovieId: null };
+      
+    case "ADD_FAVORITE":
       if (state.favorites.some((m) => m.id === action.payload.id)) {
-        return state; 
+        return state;
       }
       return { ...state, favorites: [...state.favorites, action.payload] };
 
-    case 'REMOVE_FAVORITE':
+    case "REMOVE_FAVORITE":
       return {
         ...state,
         favorites: state.favorites.filter((m) => m.id !== action.payload),
       };
-      
-    case 'SET_GENRES':
+
+    case "SET_GENRES":
       return { ...state, genres: action.payload };
 
     default:
@@ -163,6 +197,29 @@ interface GlobalProviderProps {
 
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [initializing, setInitializing] = React.useState(true);
+  
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        dispatch({ type: "SET_USER", payload: user });
+      } else {
+        dispatch({ type: "SET_USER", payload: null });
+      }
+      if (initializing) setInitializing(false);
+    });
+    return unsubscribe;
+  }, []);
+  
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#ff8c00" />
+      </View>
+    );
+  }
+
+  console.log("GlobalProvider state:", state);
   return (
     <GlobalStateContext.Provider value={state}>
       <GlobalDispatchContext.Provider value={dispatch}>
@@ -175,7 +232,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
 export function useGlobalState(): GlobalState {
   const context = useContext(GlobalStateContext);
   if (context === undefined) {
-    throw new Error('useGlobalState must be used within a GlobalProvider');
+    throw new Error("useGlobalState must be used within a GlobalProvider");
   }
   return context;
 }
@@ -183,8 +240,7 @@ export function useGlobalState(): GlobalState {
 export function useGlobalDispatch(): Dispatch<Action> {
   const context = useContext(GlobalDispatchContext);
   if (context === undefined) {
-    throw new Error('useGlobalDispatch must be used within a GlobalProvider');
+    throw new Error("useGlobalDispatch must be used within a GlobalProvider");
   }
   return context;
 }
-

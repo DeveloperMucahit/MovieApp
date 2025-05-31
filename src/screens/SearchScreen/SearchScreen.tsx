@@ -6,11 +6,10 @@ import {
   TextInput,
   FlatList,
   Image,
-  StyleSheet,
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
-  ScrollView,
+  Alert,
 } from 'react-native';
 import { getPopularMovies, searchMovies, getImageUrl, Movie, getGenres, getMoviesByGenre, Genre, getMoviesByRating } from '../../Api/Api';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -18,7 +17,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-
+import themeStyles from '../../theme/theme';
 
 const ratingOptions = [
   { label: '9+', value: 9 },
@@ -32,6 +31,10 @@ const ratingOptions = [
   { label: '1+', value: 1 },
 ];
 
+type MovieListScreenNavigationProp = StackNavigationProp<
+  HomeStackParamList
+>;
+
 const SearchScreen: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -41,55 +44,36 @@ const SearchScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
 
+  const navigation = useNavigation<MovieListScreenNavigationProp>();
 
-  const navigation = useNavigation<StackNavigationProp<HomeStackParamList, 'HomeMain'>>();
-
-  // Filter states
   const [genreFilterActive, setGenreFilterActive] = useState(false);
   const [ratingFilterActive, setRatingFilterActive] = useState(false);
 
-  // Genre data and selection
   const [genres, setGenres] = useState<Genre[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-
-  // Rating selection
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
 
   useEffect(() => {
-    // Load genres on mount
     const fetchGenres = async () => {
       try {
         const genreResponse = await getGenres();
         setGenres(genreResponse.genres);
       } catch (err) {
-        console.error('Hata: Türler yüklenemedi.', err);
+        Alert.alert('Movie Type can not loading. Refresh the screen.');
       }
     };
     fetchGenres();
   }, []);
 
   useEffect(() => {
-    // Load popular movies initially and when filters/search inactive
     if (!filterActive && !searchActive) {
       loadPopularMovies();
     }
   }, [filterActive, searchActive]);
 
   useEffect(() => {
-    // When genre changes, load movies by genre
     if (genreFilterActive && selectedGenre !== null) {
-      const fetchMoviesByGenre = async () => {
-        setLoading(true);
-        try {
-          const response = await getMoviesByGenre(selectedGenre);
-          setMovies(response.results);
-          setError(null);
-        } catch (err) {
-          setError('Filmler yüklenirken hata oluştu.');
-        }
-        setLoading(false);
-      };
-      fetchMoviesByGenre();
+      fetchMovies();
     } else if (genreFilterActive && selectedGenre === null) {
       loadPopularMovies();
     }
@@ -97,18 +81,7 @@ const SearchScreen: React.FC = () => {
 
   useEffect(() => {
     if (ratingFilterActive && selectedRating !== null) {
-      const fetchMoviesByRating = async () => {
-        setLoading(true);
-        try {
-          const response = await getMoviesByRating(selectedRating);
-          setMovies(response.results);
-          setError(null);
-        } catch (err) {
-          setError('Filmler yüklenirken hata oluştu.');
-        }
-        setLoading(false);
-      };
-      fetchMoviesByRating();
+      fetchMovies();
     } else if (ratingFilterActive && selectedRating === null) {
       loadPopularMovies();
     }
@@ -121,7 +94,33 @@ const SearchScreen: React.FC = () => {
       setMovies(response.results);
       setError(null);
     } catch (err) {
-      setError('Popüler filmler yüklenirken hata oluştu.');
+      setError('Popular movies could not be loaded. Please try again later.');
+    }
+    setLoading(false);
+  };
+
+  const fetchMovies = async () => {
+    setLoading(true);
+    try {
+      let response;
+      if (searchQuery.trim()) {
+        response = await searchMovies(searchQuery.trim());
+      } else {
+        response = await getPopularMovies(); 
+      }
+
+      if (selectedGenre) {
+        response = await getMoviesByGenre(selectedGenre);
+      }
+
+      if (selectedRating) {
+        response = await getMoviesByRating(selectedRating);
+      }
+
+      setMovies(response.results);
+      setError(null);
+    } catch (err) {
+      setError('Movies could not be loaded. Please try again later.');
     }
     setLoading(false);
   };
@@ -142,8 +141,8 @@ const SearchScreen: React.FC = () => {
     if (searchActive) {
       setSearchActive(false);
     }
-    // Reset filter sub-buttons on toggling Filter button
-    if (!filterActive) {
+    
+    if (filterActive) {
       setGenreFilterActive(false);
       setRatingFilterActive(false);
       setSelectedGenre(null);
@@ -175,7 +174,7 @@ const SearchScreen: React.FC = () => {
       setMovies(response.results);
       setError(null);
     } catch (err) {
-      setError('Arama yapılırken hata oluştu.');
+      setError('We could not find any movies matching your search.');
     }
     setLoading(false);
     setSearching(false);
@@ -192,42 +191,46 @@ const SearchScreen: React.FC = () => {
     }
   };
 
+  const handleMoviePress = (movieId: number) => {
+    navigation.navigate('Details', { movieId });
+  };
+
   const renderMovieItem = ({ item }: { item: Movie }) => (
     <TouchableOpacity 
-    style={styles.gridCard}
-    activeOpacity={0.7}
-    onPress={() => navigation.navigate('Details', { movieId: item.id })}
-     >
-      <Image source={{ uri: getImageUrl(item.poster_path) || undefined }} style={styles.gridPoster} />
-      <Text style={styles.gridTitle} numberOfLines={1}>
+      style={themeStyles.searchMoviesGridCard}
+      activeOpacity={0.7}
+       onPress={() => handleMoviePress(item.id)}
+    >
+      <Image source={{ uri: getImageUrl(item.poster_path) || undefined }} style={themeStyles.searchMoviesGridPoster} />
+      <Text style={themeStyles.searchMoviesGridTitle} numberOfLines={1}>
         {item.title}
       </Text>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={themeStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
-      <View style={styles.buttonsRow}>
+      <View style={themeStyles.searchMoviesButtonsRow}>
         <TouchableOpacity
-          style={[styles.btn, searchActive && styles.btnActive]}
+          style={[themeStyles.searchMoviesBtn, searchActive && themeStyles.searchMoviesBtnActive]}
           onPress={handleSearchToggle}
         >
-          <Text style={[styles.btnText, searchActive && styles.btnTextActive]}>Search</Text>
+          <Text style={[themeStyles.searchMoviesBtnText, searchActive && themeStyles.searchMoviesBtnTextActive]}>Search</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.btn, filterActive && styles.btnActive]}
+          style={[themeStyles.searchMoviesBtn, filterActive && themeStyles.searchMoviesBtnActive]}
           onPress={handleFilterToggle}
         >
-          <Text style={[styles.btnText, filterActive && styles.btnTextActive]}>Filter</Text>
+          <Text style={[themeStyles.searchMoviesBtnText, filterActive && themeStyles.searchMoviesBtnTextActive]}>Filter</Text>
         </TouchableOpacity>
       </View>
 
       {searchActive && (
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#888" style={styles.searchIcon} />
+        <View style={themeStyles.searchMoviesSearchContainer}>
+          <Ionicons name="search-outline" size={20} color="#888" style={themeStyles.searchMoviesSearchIcon} />
           <TextInput
-            style={styles.textInputWithIcon}
+            style={themeStyles.searchMoviesTextInputWithIcon}
             placeholder="Search movies..."
             placeholderTextColor="#888"
             value={searchQuery}
@@ -238,7 +241,7 @@ const SearchScreen: React.FC = () => {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
-              style={styles.clearIconContainer}
+              style={themeStyles.searchMoviesClearIconContainer}
               onPress={() => setSearchQuery('')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -249,56 +252,56 @@ const SearchScreen: React.FC = () => {
       )}
 
       {filterActive && (
-        <View style={styles.filterButtonsRow}>
+        <View style={themeStyles.searchMoviesFilterButtonsRow}>
           <TouchableOpacity
-            style={[styles.filterBtn, genreFilterActive && styles.filterBtnActive]}
+            style={[themeStyles.searchMoviesFilterBtn, genreFilterActive && themeStyles.searchMoviesFilterBtnActive]}
             onPress={toggleGenreFilter}
           >
-            <Text style={[styles.filterBtnText, genreFilterActive && styles.filterBtnTextActive]}>
+            <Text style={[themeStyles.searchMoviesFilterBtnText, genreFilterActive && themeStyles.searchMoviesFilterBtnTextActive]}>
               Genre
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterBtn, ratingFilterActive && styles.filterBtnActive]}
+            style={[themeStyles.searchMoviesFilterBtn, ratingFilterActive && themeStyles.searchMoviesFilterBtnActive]}
             onPress={toggleRatingFilter}
           >
-            <Text style={[styles.filterBtnText, ratingFilterActive && styles.filterBtnTextActive]}>
+            <Text style={[themeStyles.searchMoviesFilterBtnText, ratingFilterActive && themeStyles.searchMoviesFilterBtnTextActive]}>
               Rating
             </Text>
           </TouchableOpacity>
         </View>
       )}
 
-    {filterActive && ratingFilterActive && (
-       <View style={styles.dropdownWrapper}>
-      <Dropdown
-        style={styles.dropdown}
-        data={ratingOptions}
-        labelField="label"
-        valueField="value"
-        placeholder="Select Rating"
-        maxHeight={200}
-        value={selectedRating}
-        onChange={(item) => {
-          setSelectedRating(item.value);
-        }}
-        placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
-        iconStyle={styles.iconStyle}
-        dropdownPosition="bottom"
-        showsVerticalScrollIndicator
-        activeColor="#ff8c00"
-        containerStyle={styles.dropdownContainerStyle}
-        itemTextStyle={{ color: '#fff'}}
-      />
-    </View>
-  )}
-
-      {/* Genre dropdown using react-native-element-dropdown */}
-      {filterActive && genreFilterActive && (
-        <View style={styles.dropdownWrapper}>
+      {filterActive && ratingFilterActive && (
+        <View style={themeStyles.searchMoviesDropdownWrapper}>
           <Dropdown
-            style={styles.dropdown}
+            style={themeStyles.searchMoviesDropdown}
+            data={ratingOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Select Rating"
+            maxHeight={200}
+            value={selectedRating}
+            onChange={(item) => {
+              setSelectedRating(item.value);
+              fetchMovies(); 
+            }}
+            placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
+            selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
+            iconStyle={themeStyles.searchMoviesIconStyle}
+            dropdownPosition="bottom"
+            showsVerticalScrollIndicator
+            activeColor="#ff8c00"
+            containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
+            itemTextStyle={{ color: '#fff'}}
+          />
+        </View>
+      )}
+
+      {filterActive && genreFilterActive && (
+        <View style={themeStyles.searchMoviesDropdownWrapper}>
+          <Dropdown
+            style={themeStyles.searchMoviesDropdown}
             data={genres.map((g) => ({ label: g.name, value: g.id }))}
             labelField="label"
             valueField="value"
@@ -307,26 +310,26 @@ const SearchScreen: React.FC = () => {
             value={selectedGenre}
             onChange={(item) => {
               setSelectedGenre(item.value);
+              fetchMovies(); 
             }}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            iconStyle={styles.iconStyle}
+            placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
+            selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
+            iconStyle={themeStyles.searchMoviesIconStyle}
             dropdownPosition="auto"
             showsVerticalScrollIndicator
             activeColor="#ff8c00"
-            containerStyle={styles.dropdownContainerStyle}
+            containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
             itemTextStyle={{ color: '#fff'}}
-            
           />
         </View>
       )}
 
       {loading ? (
-        <View style={styles.center}>
+        <View style={themeStyles.center}>
           <ActivityIndicator size="large" color="#ff8c00" />
         </View>
       ) : error ? (
-        <View style={styles.center}>
+        <View style={themeStyles.center}>
           <Text style={{ color: '#ff4d4d' }}>{error}</Text>
         </View>
       ) : (
@@ -338,9 +341,9 @@ const SearchScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 8 }}
           ListEmptyComponent={
-            <View style={styles.center}>
+            <View style={themeStyles.center}>
               <Text style={{ color: '#aaa' }}>
-                {searching ? 'Arama sonucu bulunamadı.' : 'Film bulunamadı.'}
+                {searching ? 'Search result is not found' : 'Movie is not found. Please try again.'}
               </Text>
             </View>
           }
@@ -348,179 +351,6 @@ const SearchScreen: React.FC = () => {
       )}
     </SafeAreaView>
   );
-
-  
-
-
-
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    paddingHorizontal: 15,
-  },
-  buttonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 10,
-  },
-  btn: {
-    paddingVertical: 10,
-    paddingHorizontal: 60,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#ff8c00',
-    backgroundColor: 'transparent',
-  },
-  btnActive: {
-    backgroundColor: '#ff8c00',
-  },
-  btnText: {
-    color: '#ff8c00',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  btnTextActive: {
-    color: '#121212',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-    position: 'relative',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 15,
-    zIndex: 10,
-  },
-  textInputWithIcon: {
-    flex: 1,
-    height: 40,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 20,
-    paddingLeft: 40,
-    color: '#fff',
-    fontSize: 16,
-  },
-  clearIconContainer: {
-    position: 'absolute',
-    right: 15,
-    zIndex: 15,
-  },
-  searchBtn: {
-    marginLeft: 10,
-    backgroundColor: '#ff8c00',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  searchBtnText: {
-    color: '#121212',
-    fontWeight: 'bold',
-  },
-  filterButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  filterBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 45,
-    borderRadius: 20,
-    borderColor: '#ff8c00',
-    borderWidth: 1,
-    marginHorizontal: 10,
-  },
-  filterBtnActive: {
-    backgroundColor: '#ff8c00',
-  },
-  filterBtnText: {
-    color: '#ff8c00',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  filterBtnTextActive: {
-    color: '#121212',
-  },
-  dropdownWrapper: {
-    marginHorizontal: 10,
-    marginBottom: 10,
-  },
-  dropdown: {
-    height: 40,
-    borderColor: '#ff8c00',
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    backgroundColor: '#1e1e1e',
-  },
-  placeholderStyle: {
-    color: '#888',
-    fontSize: 16,
-  },
-  selectedTextStyle: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  iconStyle: {
-    tintColor: '#ff8c00',
-    width: 20,
-    height: 20,
-  },
-  dropdownContainerStyle: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 10,
-  },
-  gridCard: {
-    flex: 1,
-    margin: 8,
-    maxWidth: '45%',
-    alignItems: 'center',
-  },
-  gridPoster: {
-    width: '100%',
-    aspectRatio: 2 / 3,
-    borderRadius: 12,
-    backgroundColor: '#333',
-  },
-  gridTitle: {
-    marginTop: 8,
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dropdownItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#2c2c2c', // slightly lighter than dropdown container for contrast
-  },
-  
-  dropdownItemSelected: {
-    backgroundColor: '#ff8c00',
-    borderRadius: 8,
-  },
-  
-  dropdownItemText: {
-    color: '#fff', // white text for normal items
-    fontSize: 16,
-  },
-  
-  dropdownItemTextSelected: {
-    color: '#121212', // dark text on selected orange background
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  
-});
-
 export default SearchScreen;
-

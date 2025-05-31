@@ -1,31 +1,69 @@
-import React from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   StatusBar,
-} from 'react-native';
-import Ionicons from '@react-native-vector-icons/ionicons';
+  Alert,
+} from "react-native";
+import Ionicons from "@react-native-vector-icons/ionicons";
+import themeStyles from "../../theme/theme";
+import { auth } from "../../Firebase/FirebaseConfig";
+import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { useGlobalDispatch } from "../../Context/GlobalState";
+import { TextInput } from "react-native-gesture-handler";
 
 const ProfileScreen: React.FC = () => {
-  const handleLogout = () => {
-    // Placeholder: handle logout logic here
-    console.log('Logout pressed');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [credential, setCredential] = useState<any>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const dispatch = useGlobalDispatch();
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      Alert.alert("Success", "Logging out is successfully.");
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong while logging out.");
+      console.error("Error logging out:", error);
+    }
   };
 
-  const handleDeleteAccount = () => {
-    // Placeholder: handle delete account logic here
-    console.log('Delete Account pressed');
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    const user = auth.currentUser;
+
+    if(!email || !password) {
+      Alert.alert("Error", "Please enter your email and password to delete your account.");
+      setIsDeleting(false);
+      return;
+    }
+
+    const credential = EmailAuthProvider.credential(
+      email,
+      password
+    );
+
+    try {
+      await reauthenticateWithCredential(user, credential);
+      await user.delete();
+      dispatch({ type: "SET_USER", payload: null });
+      Alert.alert("Success", "Your account has been deleted successfully.");
+    } catch (error: any) {
+      Alert.alert("Error", "Something went wrong while deleting your account.");
+      console.error("Error deleting account:", error);
+    }
+    setIsDeleting(false);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={themeStyles.profilContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
-      <View style={styles.topButtonContainer}>
+      <View style={themeStyles.profilTopButtonContainer}>
         <TouchableOpacity
-          style={styles.logoutButton}
+          style={themeStyles.profilLogoutButton}
           onPress={handleLogout}
           activeOpacity={0.7}
         >
@@ -33,17 +71,35 @@ const ProfileScreen: React.FC = () => {
             name="exit-outline"
             size={22}
             color="#121212"
-            style={styles.icon}
+            style={themeStyles.profilIcon}
           />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <Text style={themeStyles.profilLogoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.flexSpacer} />
+      <View style={themeStyles.profilFlexSpacer} />
+      
+      <View style={themeStyles.profilInputContainer}>
+        <TextInput
+          style={themeStyles.profilInput}
+          placeholder="Email"
+          placeholderTextColor="#888"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={themeStyles.profilInput}
+          placeholder="Password"
+          placeholderTextColor="#888"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+      </View>
 
-      <View style={styles.bottomButtonContainer}>
+      <View style={themeStyles.profilBottomButtonContainer}>
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={themeStyles.profilDeleteButton}
           onPress={handleDeleteAccount}
           activeOpacity={0.7}
         >
@@ -51,68 +107,13 @@ const ProfileScreen: React.FC = () => {
             name="trash-outline"
             size={22}
             color="#fff"
-            style={styles.icon}
+            style={themeStyles.profilIcon}
           />
-          <Text style={styles.deleteButtonText}>Delete Account</Text>
+          <Text style={themeStyles.profilDeleteButtonText}>Delete Account</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    paddingHorizontal: 20,
-  },
-  header: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  topButtonContainer: {
-    paddingTop: 10,
-  },
-  bottomButtonContainer: {
-    paddingBottom: 20,
-  },
-  flexSpacer: {
-    flex: 1,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#ff8c00',
-    borderRadius: 30,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutButtonText: {
-    color: '#121212',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    backgroundColor: '#ff4d4d',
-    borderRadius: 30,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  icon: {
-    marginRight: 10,
-  },
-});
 
 export default ProfileScreen;

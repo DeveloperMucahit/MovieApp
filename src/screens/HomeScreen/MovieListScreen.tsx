@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  StyleSheet,
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
@@ -15,26 +14,16 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import {
   getPopularMovies,
-  getNowPlayingMovies,
-  getUpcomingMovies,
-  getTopRatedMovies,
   getImageUrl,
   Movie,
 } from '../../Api/Api';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
+import themeStyles from '../../theme/theme';
 
 type MovieListScreenNavigationProp = StackNavigationProp<
   HomeStackParamList,
   'HomeMain'
 >;
-
-const movieFetchers = [
-  getPopularMovies,
-  getNowPlayingMovies,
-  getUpcomingMovies,
-  getTopRatedMovies,
-];
-
 
 // TODOS:
 // 1. Refeshing animation ekleyeceğiz.
@@ -52,14 +41,13 @@ const MovieListScreen: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const randomFetcher =
-      movieFetchers[Math.floor(Math.random() * movieFetchers.length)];
+    const MAX_PAGE = 500; // TMDb popular movies max pages
+    const randomPage = Math.floor(Math.random() * MAX_PAGE) + 1;
     try {
-      const response = await randomFetcher();
+      const response = await getPopularMovies(randomPage);
       setMovies(response.results);
     } catch (err) {
       setError('Error fetching movies. Please try again later.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -72,10 +60,10 @@ const MovieListScreen: React.FC = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setError(null);
-    const randomFetcher =
-      movieFetchers[Math.floor(Math.random() * movieFetchers.length)];
+    const MAX_PAGE = 500; 
+    const randomPage = Math.floor(Math.random() * MAX_PAGE) + 1;
     try {
-      const response = await randomFetcher();
+      const response = await getPopularMovies(randomPage);
       setMovies(response.results);
     } catch (err) {
       setError('Error fetching movies. Please try again later.');
@@ -89,28 +77,11 @@ const MovieListScreen: React.FC = () => {
     navigation.navigate('Details', { movieId });
   };
 
-  const renderMovieItem = ({ item }: { item: Movie }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => handleMoviePress(item.id)}
-      activeOpacity={0.7}
-    >
-      <Image
-        source={{ uri: getImageUrl(item.poster_path) || undefined }}
-        style={styles.poster}
-      />
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.subtitle}>
-          {item.release_date ? item.release_date.substring(0, 4) : 'N/A'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
+      <View style={themeStyles.center}>
         <ActivityIndicator size="large" color="#ff8c00" />
       </View>
     );
@@ -118,20 +89,37 @@ const MovieListScreen: React.FC = () => {
 
   if (error) {
     return (
-      <View style={styles.center}>
+      <View style={themeStyles.center}>
         <Text style={{ color: '#ff4d4d' }}>{error}</Text>
       </View>
     );
   }
 
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={themeStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
       <FlatList
         data={movies}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderMovieItem}
+        showsVerticalScrollIndicator={false}
+        renderItem={ ({ item }) => (
+          <TouchableOpacity
+            style={themeStyles.movieListCard}
+            onPress={() => handleMoviePress(item.id)}
+          >
+            <Image
+              source={{ uri: getImageUrl(item.poster_path) || undefined }}
+              style={themeStyles.movieListPoster}
+            />
+            <View style={themeStyles.movieListCardContent}>
+              <Text style={themeStyles.movieListTitle}>{item.title}</Text>
+              <Text style={themeStyles.movieListSubtitle}>
+                {new Date(item.release_date).getFullYear()}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )
+}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -145,60 +133,5 @@ const MovieListScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    paddingHorizontal: 15,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ff8c00',
-    paddingVertical: 15,
-    textAlign: 'center',
-    letterSpacing: 1.2,
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    marginVertical: 10,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.7,
-    shadowRadius: 6,
-    shadowOffset: { width: 2, height: 4 },
-  },
-  poster: {
-    width: 90,
-    height: 140,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    backgroundColor: '#333',
-  },
-  cardContent: {
-    flex: 1,
-    padding: 15,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#ccc',
-    marginTop: 4,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#121212',
-  }
-});
 
 export default MovieListScreen;

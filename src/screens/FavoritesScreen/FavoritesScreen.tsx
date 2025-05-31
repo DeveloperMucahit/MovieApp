@@ -1,30 +1,60 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   FlatList,
   View,
   Text,
   Image,
-  StyleSheet,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import { useGlobalState, useGlobalDispatch } from '../../context/GlobalState'; // adjust according to your global state setup
-import { getImageUrl } from '../../Api/Api';
+import { useGlobalState, useGlobalDispatch } from '../../Context/GlobalState';
+import { Genre, getGenres, getImageUrl } from '../../Api/Api';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
+import themeStyles from '../../theme/theme';
+import { Dropdown } from 'react-native-element-dropdown';
 
-type FavoritesScreenNavigationProp = StackNavigationProp<
-  HomeStackParamList,
-  'HomeMain'
->;
+const ratingOptions = [
+  { label: '9+', value: 9 },
+  { label: '8+', value: 8 },
+  { label: '7+', value: 7 },
+  { label: '6+', value: 6 },
+  { label: '5+', value: 5 },
+  { label: '4+', value: 4 },
+  { label: '3+', value: 3 },
+  { label: '2+', value: 2 },
+  { label: '1+', value: 1 },
+];
 
 const FavoritesScreen: React.FC = () => {
-  const { favorites } = useGlobalState(); // assumes you have a favorites array in global state
+  const { favorites } = useGlobalState();
   const dispatch = useGlobalDispatch();
-  const navigation = useNavigation<FavoritesScreenNavigationProp>();
+  const navigation = useNavigation<StackNavigationProp<HomeStackParamList, 'HomeMain'>>();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchActive, setSearchActive] = useState(false);
+  const [filterActive, setFilterActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [genres, setGenres] = useState<Genre[]>([]);
+
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const genreResponse = await getGenres();
+        setGenres(genreResponse.genres);
+      } catch (err) {
+        console.error('Error: Genres cannot loading.', err);
+      }
+    };
+    fetchGenres();
+  }, []);
 
   const removeFavorite = (movieId: number) => {
     dispatch({ type: 'REMOVE_FAVORITE', payload: movieId });
@@ -32,84 +62,119 @@ const FavoritesScreen: React.FC = () => {
 
   const renderFavoriteItem = ({ item }: { item: any }) => (
     <TouchableOpacity
-      style={styles.card}
+      style={themeStyles.favoriteCard}
       activeOpacity={0.8}
       onPress={() => navigation.navigate('Details', { movieId: item.id })}
     >
-      <Image source={{ uri: getImageUrl(item.poster_path) || undefined }} style={styles.poster} />
-      <View style={styles.overlay}>
-        <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.heartBtn}>
+      <Image source={{ uri: getImageUrl(item.poster_path) || undefined }} style={themeStyles.favoritePoster} />
+      <View style={themeStyles.favoriteOverlay}>
+        <TouchableOpacity onPress={() => removeFavorite(item.id)} style={themeStyles.favoriteHeartBtn}>
           <Ionicons name="heart" size={24} color="red" />
         </TouchableOpacity>
       </View>
-      <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+      <Text style={themeStyles.favoriteTitle} numberOfLines={1}>{item.title}</Text>
     </TouchableOpacity>
   );
 
-  if (!favorites || favorites.length === 0) {
+  const filteredFavorites = favorites.filter(movie => {
+    const genreMatch = selectedGenre ? movie.genres.some((genre: Genre) => genre.id === selectedGenre) : true;
+    const ratingMatch = selectedRating ? movie.vote_average >= selectedRating : true;
+    const searchMatch = searchQuery ? movie.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+    return genreMatch && ratingMatch && searchMatch;
+  });
+
+  if (!filteredFavorites || filteredFavorites.length === 0) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
+      <SafeAreaView style={themeStyles.favoriteCenterContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#121212" />
-        <Text style={styles.emptyText}>No favorites added yet.</Text>
+        <Text style={themeStyles.favoriteEmptyText}>No favorites added yet.</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={themeStyles.favoriteContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
+
+      {/* Search and Filter Buttons */}
+      <View style={themeStyles.favoriteFilterContainer}>
+        <TouchableOpacity onPress={() => setSearchActive(!searchActive)} style={themeStyles.filterButton}>
+          <Text style={themeStyles.filterButtonText}>Search</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setFilterActive(!filterActive)} style={themeStyles.filterButton}>
+          <Text style={themeStyles.filterButtonText}>Filter</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Input */}
+      {searchActive && (
+        <TextInput
+          style={themeStyles.searchInput}
+          placeholder="Search by title..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      )}
+
+      {/* Filter Options */}
+      {filterActive && (
+        <View style={themeStyles.filterOptionsContainer}>
+          {/* Genre Dropdown */}
+          <Dropdown
+            style={themeStyles.searchMoviesDropdown}
+            data={genres}
+            labelField="name"
+            valueField="id"
+            placeholder="Select Genre"
+            maxHeight={200}
+            value={selectedGenre}
+            onChange={(item) => {
+              setSelectedGenre(item.id);
+            }}
+            placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
+            selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
+            iconStyle={themeStyles.searchMoviesIconStyle}
+            dropdownPosition="auto"
+            showsVerticalScrollIndicator
+            activeColor="#ff8c00"
+            containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
+            itemTextStyle={{ color: '#fff'}}
+          />
+
+          {/* Rating Dropdown */}
+          <Dropdown
+            style={themeStyles.searchMoviesDropdown}
+            data={ratingOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Select Rating"
+            maxHeight={200}
+            value={selectedRating}
+            onChange={(item) => {
+              setSelectedRating(item.value);
+            }}
+            placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
+            selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
+            iconStyle={themeStyles.searchMoviesIconStyle}
+            dropdownPosition="auto"
+            showsVerticalScrollIndicator
+            activeColor="#ff8c00"
+            containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
+            itemTextStyle={{ color: '#fff'}}
+          />
+        </View>
+      )}
+
       <FlatList
-        data={favorites}
+        data={filteredFavorites}
         renderItem={renderFavoriteItem}
         keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
         numColumns={2}
         contentContainerStyle={{ padding: 10 }}
       />
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-  centerContainer: {
-    flex: 1,
-    backgroundColor: '#121212',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 18,
-  },
-  card: {
-    flex: 1,
-    margin: 10,
-    maxWidth: '45%',
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  poster: {
-    width: '100%',
-    aspectRatio: 2 / 3,
-  },
-  title: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-    padding: 8,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  heartBtn: {
-    padding: 4,
-  },
-});
 
 export default FavoritesScreen;

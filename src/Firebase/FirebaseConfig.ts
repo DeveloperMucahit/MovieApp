@@ -1,20 +1,20 @@
-
-import firebase from '@react-native-firebase/app';
-import firestore from '@react-native-firebase/firestore';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyC38f3mKd4moTl407Ch0G8m6H2bWDuSPQ0",
-    authDomain: "movieapp-d2304.firebaseapp.com",
-    projectId: "movieapp-d2304",
-    storageBucket: "movieapp-d2304.firebasestorage.app",
-    messagingSenderId: "253418799569",
-    appId: "1:253418799569:web:0100bcd64403ed37bee0f0"
-  };
+  apiKey: "AIzaSyBLWFVOsadK1UwrEycij1fOjzhywa2YLIk",
+  authDomain: "movieapp-f6c71.firebaseapp.com",
+  projectId: "movieapp-f6c71",
+  storageBucket: "movieapp-f6c71.firebasestorage.app",
+  messagingSenderId: "788866020194",
+  appId: "1:788866020194:web:1e4fabb20a89799981b23b"
+};
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+const app = initializeApp(firebaseConfig);
 
-const db = firestore();
-
-export { firebase, db };
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+export const db = getFirestore(app);

@@ -8,8 +8,9 @@ import React, {
   useEffect,
 } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
-import { auth } from "../Firebase/FirebaseConfig";
-
+import { auth, db } from "../Firebase/FirebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import { getMovieDetails } from "../Api/Api";
 
 export interface Genre {
   id: number;
@@ -139,7 +140,7 @@ const initialState: GlobalState = {
   selectedMovieId: null,
   favorites: [],
   genres: [],
-  user: {} as User, 
+  user: {} as User,
 };
 
 export interface SpokenLanguage {
@@ -148,12 +149,13 @@ export interface SpokenLanguage {
   name: string;
 }
 export type Action =
-  | { type: "SELECT_MOVIE"; payload: number } 
+  | { type: "SELECT_MOVIE"; payload: number }
   | { type: "DESELECT_MOVIE" }
   | { type: "ADD_FAVORITE"; payload: Movie }
   | { type: "REMOVE_FAVORITE"; payload: number }
   | { type: "SET_GENRES"; payload: Genre[] }
-  | { type: "SET_USER"; payload: User | null }; 
+  | { type: "SET_USER"; payload: User | null }
+  | { type: "SET_FAVORITES"; payload: Movie[] };
 
 const GlobalStateContext = createContext<GlobalState | undefined>(undefined);
 const GlobalDispatchContext = createContext<Dispatch<Action> | undefined>(
@@ -166,11 +168,11 @@ function reducer(state: GlobalState, action: Action): GlobalState {
       return { ...state, selectedMovieId: action.payload };
 
     case "SET_USER":
-      return { ...state, user: action.payload || {} as User };
+      return { ...state, user: action.payload || ({} as User) };
 
     case "DESELECT_MOVIE":
       return { ...state, selectedMovieId: null };
-      
+
     case "ADD_FAVORITE":
       if (state.favorites.some((m) => m.id === action.payload.id)) {
         return state;
@@ -182,6 +184,9 @@ function reducer(state: GlobalState, action: Action): GlobalState {
         ...state,
         favorites: state.favorites.filter((m) => m.id !== action.payload),
       };
+
+    case "SET_FAVORITES":
+      return { ...state, favorites: action.payload };
 
     case "SET_GENRES":
       return { ...state, genres: action.payload };
@@ -198,19 +203,46 @@ interface GlobalProviderProps {
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [initializing, setInitializing] = React.useState(true);
-  
+
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        dispatch({ type: "SET_USER", payload: user });
-      } else {
-        dispatch({ type: "SET_USER", payload: null });
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      try {
+        if (user) {
+          dispatch({ type: "SET_USER", payload: user });
+
+          const userDocRef = doc(db, "favorites", user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data().favorites || {};
+            if (userData) {
+              const movies = await Promise.all(
+                userData.map(async (id: number) => {
+                  const movieDetails = await getMovieDetails(id);
+                  return movieDetails;
+                })
+              );
+              //return movieDetails;
+              dispatch({ type: "SET_FAVORITES", payload: movies });
+            } else {
+              dispatch({ type: "SET_FAVORITES", payload: [] });
+            }
+          }
+        } else {
+          dispatch({ type: "SET_USER", payload: null });
+          dispatch({ type: "SET_FAVORITES", payload: [] });
+        }
+        if (initializing) setInitializing(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        Alert.alert(
+          "Error",
+          "Failed to fetch user data. Please try again later."
+        );
       }
-      if (initializing) setInitializing(false);
     });
     return unsubscribe;
   }, []);
-  
+
   if (initializing) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

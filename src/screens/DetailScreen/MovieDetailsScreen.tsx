@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,18 +10,27 @@ import {
   FlatList,
   TouchableWithoutFeedback,
   Animated,
-  SafeAreaView
-} from 'react-native';
-import { getMovieDetails, getMovieCredits, getImageUrl, CastMember, MovieDetails } from '../../Api/Api';
-import { useGlobalState, useGlobalDispatch } from '../../Context/GlobalState';
-import Ionicons from '@react-native-vector-icons/ionicons';
-import themeStyles from '../../Theme/theme';
-import { getFirestore, doc, setDoc, arrayUnion } from 'firebase/firestore';
-import { auth } from '../../Firebase/FirebaseConfig'; 
+  SafeAreaView,
+} from "react-native";
+import {
+  getMovieDetails,
+  getMovieCredits,
+  getImageUrl,
+  CastMember,
+  MovieDetails,
+} from "../../Api/Api";
+import { useGlobalState, useGlobalDispatch } from "../../Context/GlobalState";
+import Ionicons from "@react-native-vector-icons/ionicons";
+import themeStyles from "../../Theme/theme";
+import { doc, setDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { auth, db } from "../../Firebase/FirebaseConfig";
 
 const FAVORITE_ANIM_DURATION = 800;
 
-const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, navigation }) => {
+const MovieDetailsScreen: React.FC<{ route: any; navigation: any }> = ({
+  route,
+  navigation,
+}) => {
   const { movieId } = route.params;
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [credits, setCredits] = useState<CastMember[]>([]);
@@ -32,7 +41,7 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
   const [lastTap, setLastTap] = useState<number | null>(null);
   const heartAnim = useRef(new Animated.Value(0)).current;
   const [showHeart, setShowHeart] = useState(false);
-  const [heartType, setHeartType] = useState<'full' | 'broken'>('full');
+  const [heartType, setHeartType] = useState<"full" | "broken">("full");
 
   const getFullHeartIcon = () => {
     return <Ionicons name="heart" color="#fff" size={24} />;
@@ -52,8 +61,8 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
         setCredits(creditsData.cast);
         navigation.setOptions({
           title: movieData.title,
-          headerTitleStyle: { 
-            color: '#ff8c00',
+          headerTitleStyle: {
+            color: "#ff8c00",
             fontSize: 20,
             padding: 8,
             textAlign: "center",
@@ -73,40 +82,55 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
   const toggleFavorite = async () => {
     const newFavStatus = !isFavorited;
     if (!movie) return;
-    setHeartType(newFavStatus ? 'full' : 'broken');
+    setHeartType(newFavStatus ? "full" : "broken");
     animateHeart();
 
-    animateHeart();
-    const db = getFirestore();
-    const userId = auth.currentUser ?.uid; // Get the current user's ID
-    if (isFavorited) {
-      dispatch({ type: 'REMOVE_FAVORITE', payload: movie.id });
-      // Remove from Firestore
-      if (userId) {
-        await setDoc(doc(db, 'users', userId), {
-          favorites: arrayUnion(movie.id) // Remove the movie ID from favorites
-        }, { merge: true });
+    const userId = auth.currentUser?.uid; // Get the current user's ID
+    const userDocRef = doc(db, "favorites", userId || ""); // Reference to the user's favorites document
+    try {
+      if (newFavStatus) {
+        // Add to favorites
+        dispatch({
+          type: "ADD_FAVORITE",
+          payload: {
+            id: movie.id,
+            title: movie.title,
+            poster_path: movie.poster_path || "",
+            vote_average: movie.vote_average,
+            release_date: movie.release_date,
+            overview: movie.overview,
+            genres: movie.genres,
+            backdrop_path: movie.backdrop_path || null,
+            runtime: movie.runtime,
+            status: movie.status,
+            tagline: movie.tagline,
+            homepage: movie.homepage,
+          },
+        });
+        // Add the movie ID to Firestore
+        await setDoc(
+          userDocRef,
+          {
+            favorites: arrayUnion(movie.id), // Add the movie ID to favorites
+          },
+          { merge: true }
+        );
+      } else {
+        // Remove from favorites
+        dispatch({ type: "REMOVE_FAVORITE", payload: movie.id });
+        // Remove the movie ID from Firestore
+        await setDoc(
+          userDocRef,
+          {
+            favorites: arrayRemove(movie.id), // Remove the movie ID from favorites
+          },
+          { merge: true }
+        );
       }
-    } else {
-      dispatch({
-        type: 'ADD_FAVORITE',
-        payload: {
-          id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path || '',
-          vote_average: movie.vote_average,
-          release_date: movie.release_date,
-        },
-      });
-      // Add to Firestore
-      if (userId) {
-        await setDoc(doc(db, 'users', userId), {
-          favorites: arrayUnion(movie.id) // Add the movie ID to favorites
-        }, { merge: true });
-      }
+    } catch (error) {
+      console.error("Error updating favorites in Firestore:", error);
     }
   };
-
 
   const animateHeart = () => {
     setShowHeart(true);
@@ -120,7 +144,7 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
 
   const handleDoubleTap = () => {
     const now = Date.now();
-    if (lastTap && (now - lastTap) < 300) {
+    if (lastTap && now - lastTap < 300) {
       // Double tap detected
       toggleFavorite();
     } else {
@@ -154,7 +178,9 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
   if (!movie) {
     return (
       <View style={themeStyles.center}>
-        <Text style={{ color: '#ff4d4d' }}>Movie Details Information Is Not Loading.</Text>
+        <Text style={{ color: "#ff4d4d" }}>
+          Movie Details Information Is Not Loading.
+        </Text>
       </View>
     );
   }
@@ -162,7 +188,7 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
   const renderCastMember = ({ item }: { item: CastMember }) => (
     <View style={themeStyles.movieDetailsCastMember}>
       <Image
-        source={{ uri: getImageUrl(item.profile_path, 'w185') || undefined }}
+        source={{ uri: getImageUrl(item.profile_path, "w185") || undefined }}
         style={themeStyles.movieDetailsCastImage}
       />
       <Text style={themeStyles.movieDetailsCastName} numberOfLines={1}>
@@ -171,7 +197,11 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
     </View>
   );
 
-  const renderGenreBadge = ({ item }: { item: { id: number; name: string } }) => (
+  const renderGenreBadge = ({
+    item,
+  }: {
+    item: { id: number; name: string };
+  }) => (
     <View key={item.id} style={themeStyles.movieDetailsGenreBadge}>
       <Text style={themeStyles.movieDetailsGenreText}>{item.name}</Text>
     </View>
@@ -185,13 +215,18 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
           <TouchableWithoutFeedback onPress={handleDoubleTap}>
             <Image
               source={{ uri: getImageUrl(movie.poster_path) || undefined }}
-              style={[themeStyles.movieDetailsPoster, { resizeMode: 'contain' }]} // Adjust resizeMode
+              style={[
+                themeStyles.movieDetailsPoster,
+                { resizeMode: "contain" },
+              ]} // Adjust resizeMode
             />
           </TouchableWithoutFeedback>
 
           {showHeart && (
-            <Animated.View style={[themeStyles.movieDetailsHeartOverlay, heartStyle]}>
-              {heartType === 'full' ? (
+            <Animated.View
+              style={[themeStyles.movieDetailsHeartOverlay, heartStyle]}
+            >
+              {heartType === "full" ? (
                 <Ionicons name="heart" size={100} color="red" />
               ) : (
                 <Ionicons name="heart-dislike" size={100} color="red" />
@@ -204,9 +239,15 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
             {isFavorited ? getEmptyHeartIcon() : getFullHeartIcon()}
           </TouchableOpacity>
           <View style={themeStyles.movieDetailsRatingContainer}>
-            <Ionicons name="star" size={16} color="#ffb400" style={{ marginRight: 4 }} />
+            <Ionicons
+              name="star"
+              size={16}
+              color="#ffb400"
+              style={{ marginRight: 4 }}
+            />
             <Text style={themeStyles.movieDetailsRatingText}>
-              {movie.vote_average.toFixed(1)} / {new Date(movie.release_date).getFullYear()}
+              {movie.vote_average.toFixed(1)} /{" "}
+              {new Date(movie.release_date).getFullYear()}
             </Text>
           </View>
         </View>
@@ -222,7 +263,9 @@ const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, 
         </View>
 
         <ScrollView style={themeStyles.movieDetailsDescriptionContainer}>
-          <Text style={themeStyles.movieDetailsDescription}>{movie.overview}</Text>
+          <Text style={themeStyles.movieDetailsDescription}>
+            {movie.overview}
+          </Text>
         </ScrollView>
 
         <FlatList

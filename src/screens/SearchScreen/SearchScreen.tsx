@@ -44,7 +44,7 @@ const SearchScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
 
-  const navigation = useNavigation<MovieListScreenNavigationProp>();
+  const navigation = useNavigation<StackNavigationProp<HomeStackParamList>>();
 
   const [genreFilterActive, setGenreFilterActive] = useState(false);
   const [ratingFilterActive, setRatingFilterActive] = useState(false);
@@ -137,26 +137,6 @@ const SearchScreen: React.FC = () => {
     }
   };
 
-  const toggleGenreAndRatingFilter = () => {
-    if (genreFilterActive) {
-      setGenreFilterActive(false);
-      
-      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
-    } else if(ratingFilterActive) {
-      setRatingFilterActive(false);
-      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
-    } else {
-      setGenreFilterActive(true);
-      setRatingFilterActive(true);
-      getMoviesByGenreAndRating(null, 0);
-    }
-
-    if( genreFilterActive || ratingFilterActive) {
-
-    }
-
-  };
-
   const toggleGenreFilter = () => {
     if (genreFilterActive) {
       setGenreFilterActive(false);
@@ -174,7 +154,6 @@ const SearchScreen: React.FC = () => {
       getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
     } else {
       setRatingFilterActive(true);
-      setSelectedGenre(null);
     }
   };
 
@@ -198,8 +177,10 @@ const SearchScreen: React.FC = () => {
   };
 
   const handleMoviePress = (movieId: number) => {
+    console.log(navigation.getState());
     navigation.navigate('Details', { movieId });
   };
+  
 
   const renderMovieItem = ({ item }: { item: Movie }) => (
     <TouchableOpacity 

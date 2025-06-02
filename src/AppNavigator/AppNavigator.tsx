@@ -25,6 +25,7 @@ export type TabParamList = {
   Favorites: undefined;
   Search: undefined;
   Profile: undefined;
+  Details: { movieId: number };
 };
 
 const HomeStack = createStackNavigator<HomeStackParamList>();
@@ -57,7 +58,7 @@ function HomeStackNavigator() {
   );
 }
 
-function MainTabNavigator({ onLogout }: { onLogout?: () => void }) {
+function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -119,15 +120,8 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       {user ? (
-        <HomeStack.Navigator
-          screenOptions={{
-            headerShown: false,
-            cardStyle: { backgroundColor: "#121212" },
-          }}
-        >
-          <HomeStack.Screen name="HomeMain" component={MainTabNavigator} />
-        </HomeStack.Navigator>
-      ) : (
+        <MainTabNavigator />
+      ) : ( 
         <HomeStack.Navigator
           screenOptions={{
             headerShown: false,

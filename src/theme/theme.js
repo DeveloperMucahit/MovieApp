@@ -216,6 +216,7 @@ const themeStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 10,
+    
   },
   searchMoviesFilterBtn: {
     paddingVertical: 8,
@@ -239,9 +240,10 @@ const themeStyles = StyleSheet.create({
   searchMoviesDropdownWrapper: {
     marginHorizontal: 10,
     marginBottom: 10,
+    height: 40,
   },
   searchMoviesDropdown: {
-    height: 40,
+    height: 50,
     borderColor: '#ff8c00',
     borderWidth: 1,
     borderRadius: 20,
@@ -516,7 +518,6 @@ const themeStyles = StyleSheet.create({
   favoriteHeartBtn: {
     padding: 4,
   },
-
   favoriteFilterContainer: {
     marginHorizontal: 10,
     marginBottom: 10,

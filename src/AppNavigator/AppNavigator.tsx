@@ -4,13 +4,13 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "@react-native-vector-icons/ionicons";
 
-import LoginScreen from "../screens/LoginScreen/LoginScreen";
-import RegisterScreen from "../screens/RegisterScreen/RegisterScreen";
-import MovieListScreen from "../screens/HomeScreen/MovieListScreen";
-import MovieDetailsScreen from "../screens/DetailScreen/MovieDetailsScreen";
-import FavoritesScreen from "../screens/FavoritesScreen/FavoritesScreen";
-import SearchScreen from "../screens/SearchScreen/SearchScreen";
-import ProfileScreen from "../screens/ProfileScreen/ProfileScreen";
+import LoginScreen from "../Screens/LoginScreen/LoginScreen";
+import RegisterScreen from "../Screens/RegisterScreen/RegisterScreen";
+import MovieListScreen from "../Screens/HomeScreen/MovieListScreen";
+import MovieDetailsScreen from "../Screens/DetailScreen/MovieDetailsScreen";
+import FavoritesScreen from "../Screens/FavoritesScreen/FavoritesScreen";
+import SearchScreen from "../Screens/SearchScreen/SearchScreen";
+import ProfileScreen from "../Screens/ProfileScreen/ProfileScreen";
 import { auth } from "../Firebase/FirebaseConfig";
 
 export type HomeStackParamList = {

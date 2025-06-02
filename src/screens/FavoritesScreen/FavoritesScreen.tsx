@@ -16,7 +16,7 @@ import { Genre, getGenres, getImageUrl } from '../../Api/Api';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-import themeStyles from '../../theme/theme';
+import themeStyles from '../../Theme/theme';
 import { Dropdown } from 'react-native-element-dropdown';
 
 const ratingOptions = [
@@ -108,12 +108,24 @@ const FavoritesScreen: React.FC = () => {
 
       {/* Search Input */}
       {searchActive && (
-        <TextInput
-          style={themeStyles.searchMoviesSearchContainer}
-          placeholder="Search by title..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        <View style={themeStyles.searchMoviesSearchContainer}>
+           <Ionicons name="search-outline" size={20} color="#888" style={themeStyles.searchMoviesSearchIcon} />
+          <TextInput
+            style={themeStyles.searchMoviesTextInputWithIcon}
+            placeholder="Search by title..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              style={themeStyles.searchMoviesClearIconContainer}
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={22} color="#ff8c00" />
+            </TouchableOpacity>
+          )}
+        </View>
       )}
 
       {/* Filter Options */}

@@ -18,7 +18,7 @@ import {
   Movie,
 } from '../../Api/Api';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-import themeStyles from '../../theme/theme';
+import themeStyles from '../../Theme/theme';
 
 type MovieListScreenNavigationProp = StackNavigationProp<
   HomeStackParamList,

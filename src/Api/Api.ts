@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { handleApiError } from '../utils/errorHandler';
+import { handleApiError } from '../Utils/errorHandler';
 import { Alert } from 'react-native';
 
 const API_KEY = '10dd88179d9700ca9546d0d0c749f65e';
@@ -109,24 +109,22 @@ export async function getGenres(): Promise<{ genres: Genre[] }> {
   return data ?? { genres: [] };
 }
 
-export async function getMoviesByGenre(
-  genreId: number,
+export async function getMoviesByGenreAndRating(
+  genreId: number | null,
+  ratingGte: number,
   page: number = 1
 ): Promise<{ results: Movie[] }> {
+  if (ratingGte < 0 ) {
+    { ratingGte = 0; };
+  }
   const data = await fetchFromTMDb<{ results: Movie[] }>('/discover/movie', {
-    with_genres: genreId.toString(),
+    with_genres: genreId?.toString(),
+    "vote_average.lte": 10,
+    'vote_average.gte': ratingGte.toString(),
     page,
+    sort_by: 'vote_average.desc',
   });
   return data ?? { results: [] };
-}
-
-export async function getMovieCredits(movieId: number): Promise<{ cast: CastMember[] }> {
-  const data = await fetchFromTMDb<{ cast: CastMember[] }>(`/movie/${movieId}/credits`);
-  if (!data) {
-    Alert.alert(`Failed to fetch movie credits for movieId: ${movieId}`);
-    return { cast: [] };
-  }
-  return data;
 }
 
 export async function getMoviesByRating(
@@ -139,4 +137,13 @@ export async function getMoviesByRating(
     sort_by: 'vote_average.desc', 
   });
   return data ?? { results: [] };
+}
+
+export async function getMovieCredits(movieId: number): Promise<{ cast: CastMember[] }> {
+  const data = await fetchFromTMDb<{ cast: CastMember[] }>(`/movie/${movieId}/credits`);
+  if (!data) {
+    Alert.alert(`Failed to fetch movie credits for movieId: ${movieId}`);
+    return { cast: [] };
+  }
+  return data;
 }

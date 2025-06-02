@@ -15,13 +15,13 @@ import {
 import { getMovieDetails, getMovieCredits, getImageUrl, CastMember, MovieDetails } from '../../Api/Api';
 import { useGlobalState, useGlobalDispatch } from '../../Context/GlobalState';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import themeStyles from '../../theme/theme';
+import themeStyles from '../../Theme/theme';
 import { getFirestore, doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { auth } from '../../Firebase/FirebaseConfig'; 
 
 const FAVORITE_ANIM_DURATION = 800;
 
-const MovieDetailsScreen: React.FC<{ route: any }> = ({ route }) => {
+const MovieDetailsScreen: React.FC<{ route: any, navigation: any }> = ({ route, navigation }) => {
   const { movieId } = route.params;
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [credits, setCredits] = useState<CastMember[]>([]);
@@ -50,6 +50,16 @@ const MovieDetailsScreen: React.FC<{ route: any }> = ({ route }) => {
         const creditsData = await getMovieCredits(movieId);
         setMovie(movieData);
         setCredits(creditsData.cast);
+        navigation.setOptions({
+          title: movieData.title,
+          headerTitleStyle: { 
+            color: '#ff8c00',
+            fontSize: 20,
+            padding: 8,
+            textAlign: "center",
+          },
+          numberofLines: 2,
+        });
       } catch (err) {
         console.error(err);
       } finally {

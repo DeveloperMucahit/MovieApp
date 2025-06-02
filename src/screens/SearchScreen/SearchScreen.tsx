@@ -11,13 +11,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { getPopularMovies, searchMovies, getImageUrl, Movie, getGenres, getMoviesByGenre, Genre, getMoviesByRating } from '../../Api/Api';
+import { getPopularMovies, searchMovies, getImageUrl, Movie, getGenres, getMoviesByGenreAndRating, Genre } from '../../Api/Api';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-import themeStyles from '../../theme/theme';
+import themeStyles from '../../Theme/theme';
 
 const ratingOptions = [
   { label: '9+', value: 9 },
@@ -71,20 +71,12 @@ const SearchScreen: React.FC = () => {
   }, [filterActive, searchActive]);
 
   useEffect(() => {
-    if (genreFilterActive && selectedGenre !== null) {
+    if (genreFilterActive || selectedGenre !== null) {
       fetchMovies();
-    } else if (genreFilterActive && selectedGenre === null) {
+    } else if (genreFilterActive || selectedGenre === null) {
       loadPopularMovies();
     }
   }, [selectedGenre, genreFilterActive]);
-
-  useEffect(() => {
-    if (ratingFilterActive && selectedRating !== null) {
-      fetchMovies();
-    } else if (ratingFilterActive && selectedRating === null) {
-      loadPopularMovies();
-    }
-  }, [selectedRating, ratingFilterActive]);
 
   const loadPopularMovies = async () => {
     setLoading(true);
@@ -105,16 +97,13 @@ const SearchScreen: React.FC = () => {
       if (searchQuery.trim()) {
         response = await searchMovies(searchQuery.trim());
       } else {
-        response = await getPopularMovies(); 
+        response = await getPopularMovies();
       }
 
-      if (selectedGenre) {
-        response = await getMoviesByGenre(selectedGenre);
+      if (selectedGenre || selectedRating) {
+        response = await getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
       }
 
-      if (selectedRating) {
-        response = await getMoviesByRating(selectedRating);
-      }
 
       setMovies(response.results);
       setError(null);
@@ -148,14 +137,43 @@ const SearchScreen: React.FC = () => {
     }
   };
 
+  const toggleGenreAndRatingFilter = () => {
+    if (genreFilterActive) {
+      setGenreFilterActive(false);
+      
+      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
+    } else if(ratingFilterActive) {
+      setRatingFilterActive(false);
+      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
+    } else {
+      setGenreFilterActive(true);
+      setRatingFilterActive(true);
+      getMoviesByGenreAndRating(null, 0);
+    }
+
+    if( genreFilterActive || ratingFilterActive) {
+
+    }
+
+  };
+
+  const toggleGenreFilter = () => {
+    if (genreFilterActive) {
+      setGenreFilterActive(false);
+      setSelectedGenre(null);
+      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
+    } else {
+      setGenreFilterActive(true);
+    }
+  };
+
   const toggleRatingFilter = () => {
     if (ratingFilterActive) {
       setRatingFilterActive(false);
       setSelectedRating(null);
-      loadPopularMovies();
+      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
     } else {
       setRatingFilterActive(true);
-      setGenreFilterActive(false);
       setSelectedGenre(null);
     }
   };
@@ -177,17 +195,6 @@ const SearchScreen: React.FC = () => {
     }
     setLoading(false);
     setSearching(false);
-  };
-
-  const toggleGenreFilter = () => {
-    if (genreFilterActive) {
-      setGenreFilterActive(false);
-      setSelectedGenre(null);
-      loadPopularMovies();
-    } else {
-      setGenreFilterActive(true);
-      setRatingFilterActive(false);
-    }
   };
 
   const handleMoviePress = (movieId: number) => {
@@ -241,7 +248,10 @@ const SearchScreen: React.FC = () => {
           {searchQuery.length > 0 && (
             <TouchableOpacity
               style={themeStyles.searchMoviesClearIconContainer}
-              onPress={() => setSearchQuery('')}
+              onPress={() => {
+                setSearchQuery(''); 
+                loadPopularMovies();
+               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="close-circle" size={22} color="#ff8c00" />

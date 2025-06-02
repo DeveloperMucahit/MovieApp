@@ -8,11 +8,10 @@ import {
   Alert,
 } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import themeStyles from "../../theme/theme";
+import themeStyles from "../../Theme/theme";
 import { auth } from "../../Firebase/FirebaseConfig";
-import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { deleteUser, EmailAuthProvider, reauthenticateWithCredential, signOut } from "firebase/auth";
 import { useGlobalDispatch } from "../../Context/GlobalState";
-import { TextInput } from "react-native-gesture-handler";
 
 const ProfileScreen: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -22,40 +21,51 @@ const ProfileScreen: React.FC = () => {
   const dispatch = useGlobalDispatch();
 
   const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      Alert.alert("Success", "Logging out is successfully.");
-    } catch (error) {
-      Alert.alert("Error", "Something went wrong while logging out.");
-      console.error("Error logging out:", error);
+    Alert.alert(
+      "Logout",
+      "Are you sure to logout your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              await auth.signOut();
+              Alert.alert("Success", "Logging out is successfully.");
+            } catch (error) {
+              Alert.alert("Error", "Something went wrong while logging out.");
+              console.error("Error logging out:", error);
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
     }
-  };
 
   const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    const user = auth.currentUser;
-
-    if(!email || !password) {
-      Alert.alert("Error", "Please enter your email and password to delete your account.");
-      setIsDeleting(false);
-      return;
-    }
-
-    const credential = EmailAuthProvider.credential(
-      email,
-      password
+    Alert.alert(
+      "Delete Account",
+      "Are you sure to delete your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              const user = auth.currentUser;
+              if (user) {
+                await deleteUser(user);
+                Alert.alert("Success", "The Account has been deleted.");
+              }
+            } catch (error) {
+              Alert.alert("Failed", "The Account could not be deleted.");
+            }
+          },
+          style: "destructive",
+        },
+      ]
     );
-
-    try {
-      await reauthenticateWithCredential(user, credential);
-      await user.delete();
-      dispatch({ type: "SET_USER", payload: null });
-      Alert.alert("Success", "Your account has been deleted successfully.");
-    } catch (error: any) {
-      Alert.alert("Error", "Something went wrong while deleting your account.");
-      console.error("Error deleting account:", error);
-    }
-    setIsDeleting(false);
   };
 
   return (
@@ -79,24 +89,6 @@ const ProfileScreen: React.FC = () => {
 
       <View style={themeStyles.profilFlexSpacer} />
       
-      <View style={themeStyles.profilInputContainer}>
-        <TextInput
-          style={themeStyles.profilInput}
-          placeholder="Email"
-          placeholderTextColor="#888"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={themeStyles.profilInput}
-          placeholder="Password"
-          placeholderTextColor="#888"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
-
       <View style={themeStyles.profilBottomButtonContainer}>
         <TouchableOpacity
           style={themeStyles.profilDeleteButton}

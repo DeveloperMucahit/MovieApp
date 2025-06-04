@@ -20,7 +20,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { HomeStackParamList } from "../../AppNavigator/AppNavigator";
 import { auth, db } from "../../Firebase/FirebaseConfig";
 import { collection, addDoc } from "firebase/firestore";
-import themeStyles from "../../Theme/theme";
+import themeStyles from "../../theme/theme";
 
 const RegisterScreen: React.FC = () => {
   const navigation =

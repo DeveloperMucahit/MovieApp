@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,30 +10,34 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { getPopularMovies, searchMovies, getImageUrl, Movie, getGenres, getMoviesByGenreAndRating, Genre } from '../../Api/Api';
-import Ionicons from '@react-native-vector-icons/ionicons';
-import { Dropdown } from 'react-native-element-dropdown';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-import themeStyles from '../../Theme/theme';
+} from "react-native";
+import {
+  getPopularMovies,
+  searchMovies,
+  getImageUrl,
+  Movie,
+  getGenres,
+  getMoviesByGenreAndRating,
+  Genre,
+} from "../../Api/Api";
+import Ionicons from "@react-native-vector-icons/ionicons";
+import { Dropdown } from "react-native-element-dropdown";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { HomeStackParamList, SearchStackParamList } from "../../AppNavigator/AppNavigator";
+import themeStyles from "../../theme/theme";
 
 const ratingOptions = [
-  { label: '9+', value: 9 },
-  { label: '8+', value: 8 },
-  { label: '7+', value: 7 },
-  { label: '6+', value: 6 },
-  { label: '5+', value: 5 },
-  { label: '4+', value: 4 },
-  { label: '3+', value: 3 },
-  { label: '2+', value: 2 },
-  { label: '1+', value: 1 },
+  { label: "9+", value: 9 },
+  { label: "8+", value: 8 },
+  { label: "7+", value: 7 },
+  { label: "6+", value: 6 },
+  { label: "5+", value: 5 },
+  { label: "4+", value: 4 },
+  { label: "3+", value: 3 },
+  { label: "2+", value: 2 },
+  { label: "1+", value: 1 },
 ];
-
-type MovieListScreenNavigationProp = StackNavigationProp<
-  HomeStackParamList
->;
 
 const SearchScreen: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -41,13 +45,10 @@ const SearchScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchActive, setSearchActive] = useState(false);
   const [filterActive, setFilterActive] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
 
-  const navigation = useNavigation<StackNavigationProp<HomeStackParamList>>();
-
-  const [genreFilterActive, setGenreFilterActive] = useState(false);
-  const [ratingFilterActive, setRatingFilterActive] = useState(false);
+  const navigation = useNavigation<StackNavigationProp<SearchStackParamList, 'Search'>>();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
@@ -58,7 +59,7 @@ const SearchScreen: React.FC = () => {
         const genreResponse = await getGenres();
         setGenres(genreResponse.genres);
       } catch (err) {
-        Alert.alert('Movie Type can not loading. Refresh the screen.');
+        Alert.alert("Movie Type can not loading. Refresh the screen.");
       }
     };
     fetchGenres();
@@ -71,12 +72,12 @@ const SearchScreen: React.FC = () => {
   }, [filterActive, searchActive]);
 
   useEffect(() => {
-    if (genreFilterActive || selectedGenre !== null) {
+    if (selectedGenre || selectedRating !== null) {
       fetchMovies();
-    } else if (genreFilterActive || selectedGenre === null) {
+    } else {
       loadPopularMovies();
     }
-  }, [selectedGenre, genreFilterActive]);
+  }, [selectedGenre, selectedRating]);
 
   const loadPopularMovies = async () => {
     setLoading(true);
@@ -85,7 +86,7 @@ const SearchScreen: React.FC = () => {
       setMovies(response.results);
       setError(null);
     } catch (err) {
-      setError('Popular movies could not be loaded. Please try again later.');
+      setError("Popular movies could not be loaded. Please try again later.");
     }
     setLoading(false);
   };
@@ -101,14 +102,16 @@ const SearchScreen: React.FC = () => {
       }
 
       if (selectedGenre || selectedRating) {
-        response = await getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
+        response = await getMoviesByGenreAndRating(
+          selectedGenre,
+          selectedRating || 0
+        );
       }
-
 
       setMovies(response.results);
       setError(null);
     } catch (err) {
-      setError('Movies could not be loaded. Please try again later.');
+      setError("Movies could not be loaded. Please try again later.");
     }
     setLoading(false);
   };
@@ -117,43 +120,17 @@ const SearchScreen: React.FC = () => {
     setSearchActive((prev) => !prev);
     if (filterActive) {
       setFilterActive(false);
-      setGenreFilterActive(false);
-      setRatingFilterActive(false);
       setSelectedGenre(null);
+      setSelectedRating(null);
     }
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
   const handleFilterToggle = () => {
     setFilterActive((prev) => !prev);
     if (searchActive) {
       setSearchActive(false);
-    }
-    
-    if (filterActive) {
-      setGenreFilterActive(false);
-      setRatingFilterActive(false);
-      setSelectedGenre(null);
-    }
-  };
-
-  const toggleGenreFilter = () => {
-    if (genreFilterActive) {
-      setGenreFilterActive(false);
-      setSelectedGenre(null);
-      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
-    } else {
-      setGenreFilterActive(true);
-    }
-  };
-
-  const toggleRatingFilter = () => {
-    if (ratingFilterActive) {
-      setRatingFilterActive(false);
-      setSelectedRating(null);
-      getMoviesByGenreAndRating(selectedGenre, selectedRating || 0);
-    } else {
-      setRatingFilterActive(true);
+      setSearchQuery("");
     }
   };
 
@@ -170,7 +147,7 @@ const SearchScreen: React.FC = () => {
       setMovies(response.results);
       setError(null);
     } catch (err) {
-      setError('We could not find any movies matching your search.');
+      setError("We could not find any movies matching your search.");
     }
     setLoading(false);
     setSearching(false);
@@ -178,17 +155,19 @@ const SearchScreen: React.FC = () => {
 
   const handleMoviePress = (movieId: number) => {
     console.log(navigation.getState());
-    navigation.navigate('Details', { movieId });
+    navigation.navigate("Details", { movieId });
   };
-  
 
   const renderMovieItem = ({ item }: { item: Movie }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={themeStyles.searchMoviesGridCard}
       activeOpacity={0.7}
-       onPress={() => handleMoviePress(item.id)}
+      onPress={() => handleMoviePress(item.id)}
     >
-      <Image source={{ uri: getImageUrl(item.poster_path) || undefined }} style={themeStyles.searchMoviesGridPoster} />
+      <Image
+        source={{ uri: getImageUrl(item.poster_path) || undefined }}
+        style={themeStyles.searchMoviesGridPoster}
+      />
       <Text style={themeStyles.searchMoviesGridTitle} numberOfLines={1}>
         {item.title}
       </Text>
@@ -198,24 +177,50 @@ const SearchScreen: React.FC = () => {
   return (
     <SafeAreaView style={themeStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
+
       <View style={themeStyles.searchMoviesButtonsRow}>
         <TouchableOpacity
-          style={[themeStyles.searchMoviesBtn, searchActive && themeStyles.searchMoviesBtnActive]}
+          style={[
+            themeStyles.searchMoviesBtn,
+            searchActive && themeStyles.searchMoviesBtnActive,
+          ]}
           onPress={handleSearchToggle}
         >
-          <Text style={[themeStyles.searchMoviesBtnText, searchActive && themeStyles.searchMoviesBtnTextActive]}>Search</Text>
+          <Text
+            style={[
+              themeStyles.searchMoviesBtnText,
+              searchActive && themeStyles.searchMoviesBtnTextActive,
+            ]}
+          >
+            Search
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[themeStyles.searchMoviesBtn, filterActive && themeStyles.searchMoviesBtnActive]}
+          style={[
+            themeStyles.searchMoviesBtn,
+            filterActive && themeStyles.searchMoviesBtnActive,
+          ]}
           onPress={handleFilterToggle}
         >
-          <Text style={[themeStyles.searchMoviesBtnText, filterActive && themeStyles.searchMoviesBtnTextActive]}>Filter</Text>
+          <Text
+            style={[
+              themeStyles.searchMoviesBtnText,
+              filterActive && themeStyles.searchMoviesBtnTextActive,
+            ]}
+          >
+            Filter
+          </Text>
         </TouchableOpacity>
       </View>
 
       {searchActive && (
         <View style={themeStyles.searchMoviesSearchContainer}>
-          <Ionicons name="search-outline" size={20} color="#888" style={themeStyles.searchMoviesSearchIcon} />
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color="#888"
+            style={themeStyles.searchMoviesSearchIcon}
+          />
           <TextInput
             style={themeStyles.searchMoviesTextInputWithIcon}
             placeholder="Search movies..."
@@ -230,9 +235,9 @@ const SearchScreen: React.FC = () => {
             <TouchableOpacity
               style={themeStyles.searchMoviesClearIconContainer}
               onPress={() => {
-                setSearchQuery(''); 
+                setSearchQuery("");
                 loadPopularMovies();
-               }}
+              }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="close-circle" size={22} color="#ff8c00" />
@@ -242,57 +247,10 @@ const SearchScreen: React.FC = () => {
       )}
 
       {filterActive && (
-        <View style={themeStyles.searchMoviesFilterButtonsRow}>
-          <TouchableOpacity
-            style={[themeStyles.searchMoviesFilterBtn, genreFilterActive && themeStyles.searchMoviesFilterBtnActive]}
-            onPress={toggleGenreFilter}
-          >
-            <Text style={[themeStyles.searchMoviesFilterBtnText, genreFilterActive && themeStyles.searchMoviesFilterBtnTextActive]}>
-              Genre
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[themeStyles.searchMoviesFilterBtn, ratingFilterActive && themeStyles.searchMoviesFilterBtnActive]}
-            onPress={toggleRatingFilter}
-          >
-            <Text style={[themeStyles.searchMoviesFilterBtnText, ratingFilterActive && themeStyles.searchMoviesFilterBtnTextActive]}>
-              Rating
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {filterActive && ratingFilterActive && (
-        <View style={themeStyles.searchMoviesDropdownWrapper}>
+        <View style={themeStyles.filterOptionsContainer}>
           <Dropdown
             style={themeStyles.searchMoviesDropdown}
-            data={ratingOptions}
-            labelField="label"
-            valueField="value"
-            placeholder="Select Rating"
-            maxHeight={200}
-            value={selectedRating}
-            onChange={(item) => {
-              setSelectedRating(item.value);
-              fetchMovies(); 
-            }}
-            placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
-            selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
-            iconStyle={themeStyles.searchMoviesIconStyle}
-            dropdownPosition="bottom"
-            showsVerticalScrollIndicator
-            activeColor="#ff8c00"
-            containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
-            itemTextStyle={{ color: '#fff'}}
-          />
-        </View>
-      )}
-
-      {filterActive && genreFilterActive && (
-        <View style={themeStyles.searchMoviesDropdownWrapper}>
-          <Dropdown
-            style={themeStyles.searchMoviesDropdown}
-            data={genres.map((g) => ({ label: g.name, value: g.id }))}
+            data={[{  label: "Select Genre", value: null }, ...genres.map((g) => ({ label: g.name, value: g.id }))]}
             labelField="label"
             valueField="value"
             placeholder="Select Genre"
@@ -300,7 +258,7 @@ const SearchScreen: React.FC = () => {
             value={selectedGenre}
             onChange={(item) => {
               setSelectedGenre(item.value);
-              fetchMovies(); 
+              fetchMovies();
             }}
             placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
             selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
@@ -309,10 +267,34 @@ const SearchScreen: React.FC = () => {
             showsVerticalScrollIndicator
             activeColor="#ff8c00"
             containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
-            itemTextStyle={{ color: '#fff'}}
+            itemTextStyle={{ color: "#fff" }}
+          />
+
+          <Dropdown
+            style={themeStyles.searchMoviesDropdown}
+            data={[{ label: "Select Rating", value: null }, ...ratingOptions]}
+            labelField="label"
+            valueField="value"
+            placeholder="Select Rating"
+            maxHeight={200}
+            value={selectedRating}
+            onChange={(item) => {
+              setSelectedRating(item.value);
+              fetchMovies();
+            }}
+            placeholderStyle={themeStyles.searchMoviesPlaceholderStyle}
+            selectedTextStyle={themeStyles.searchMoviesSelectedTextStyle}
+            iconStyle={themeStyles.searchMoviesIconStyle}
+            dropdownPosition="bottom"
+            showsVerticalScrollIndicator
+            activeColor="#ff8c00"
+            containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
+            itemTextStyle={{ color: "#fff" }}
           />
         </View>
       )}
+
+      
 
       {loading ? (
         <View style={themeStyles.center}>
@@ -320,7 +302,7 @@ const SearchScreen: React.FC = () => {
         </View>
       ) : error ? (
         <View style={themeStyles.center}>
-          <Text style={{ color: '#ff4d4d' }}>{error}</Text>
+          <Text style={{ color: "#ff4d4d" }}>{error}</Text>
         </View>
       ) : (
         <FlatList
@@ -332,8 +314,10 @@ const SearchScreen: React.FC = () => {
           contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 8 }}
           ListEmptyComponent={
             <View style={themeStyles.center}>
-              <Text style={{ color: '#aaa' }}>
-                {searching ? 'Search result is not found' : 'Movie is not found. Please try again.'}
+              <Text style={{ color: "#aaa" }}>
+                {searching
+                  ? "Search result is not found"
+                  : "Movie is not found. Please try again."}
               </Text>
             </View>
           }

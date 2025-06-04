@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -8,18 +8,11 @@ import {
   Alert,
 } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import themeStyles from "../../Theme/theme";
+import themeStyles from "../../theme/theme";
 import { auth } from "../../Firebase/FirebaseConfig";
-import { deleteUser, EmailAuthProvider, reauthenticateWithCredential, signOut } from "firebase/auth";
-import { useGlobalDispatch } from "../../Context/GlobalState";
+import { deleteUser} from "firebase/auth";
 
 const ProfileScreen: React.FC = () => {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [credential, setCredential] = useState<any>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const dispatch = useGlobalDispatch();
-
   const handleLogout = async () => {
     Alert.alert(
       "Logout",

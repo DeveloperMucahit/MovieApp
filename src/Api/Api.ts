@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { handleApiError } from '../Utils/errorHandler';
+import { handleApiError } from '../utils/errorHandler';
 import { Alert } from 'react-native';
 
 const API_KEY = '10dd88179d9700ca9546d0d0c749f65e';

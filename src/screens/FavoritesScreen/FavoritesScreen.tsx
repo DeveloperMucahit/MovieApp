@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   FlatList,
@@ -7,39 +7,40 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
-  ActivityIndicator,
   TextInput,
-} from 'react-native';
-import Ionicons from '@react-native-vector-icons/ionicons';
-import { useGlobalState, useGlobalDispatch } from '../../Context/GlobalState';
-import { Genre, getGenres, getImageUrl } from '../../Api/Api';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { useNavigation } from '@react-navigation/native';
-import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-import themeStyles from '../../Theme/theme';
-import { Dropdown } from 'react-native-element-dropdown';
+} from "react-native";
+import Ionicons from "@react-native-vector-icons/ionicons";
+import { useGlobalState, useGlobalDispatch } from "../../context/GlobalState";
+import { Genre, getGenres, getImageUrl } from "../../Api/Api";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { useNavigation } from "@react-navigation/native";
+import { FavoriteStackParamList, HomeStackParamList } from "../../AppNavigator/AppNavigator";
+import themeStyles from "../../theme/theme";
+import { Dropdown } from "react-native-element-dropdown";
+import { arrayRemove, doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../../Firebase/FirebaseConfig";
 
 const ratingOptions = [
-  { label: '9+', value: 9 },
-  { label: '8+', value: 8 },
-  { label: '7+', value: 7 },
-  { label: '6+', value: 6 },
-  { label: '5+', value: 5 },
-  { label: '4+', value: 4 },
-  { label: '3+', value: 3 },
-  { label: '2+', value: 2 },
-  { label: '1+', value: 1 },
+  { label: "9+", value: 9 },
+  { label: "8+", value: 8 },
+  { label: "7+", value: 7 },
+  { label: "6+", value: 6 },
+  { label: "5+", value: 5 },
+  { label: "4+", value: 4 },
+  { label: "3+", value: 3 },
+  { label: "2+", value: 2 },
+  { label: "1+", value: 1 },
 ];
 
 const FavoritesScreen: React.FC = () => {
   const { favorites } = useGlobalState();
   const dispatch = useGlobalDispatch();
-  const navigation = useNavigation<StackNavigationProp<HomeStackParamList, 'HomeMain'>>();
+  const navigation = useNavigation<StackNavigationProp<FavoriteStackParamList, "Favorites">>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchActive, setSearchActive] = useState(false);
   const [filterActive, setFilterActive] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -50,47 +51,76 @@ const FavoritesScreen: React.FC = () => {
         const genreResponse = await getGenres();
         setGenres(genreResponse.genres);
       } catch (err) {
-        console.error('Error: Genres cannot loading.', err);
+        console.error("Error: Genres cannot loading.", err);
       }
     };
     fetchGenres();
   }, []);
 
-  const removeFavorite = (movieId: number) => {
-    dispatch({ type: 'REMOVE_FAVORITE', payload: movieId });
+  const removeFavorite = async (movieId: number) => {
+    const userId = auth.currentUser?.uid;
+    const userDocRef = doc(db, "favorites", userId || "");
+    dispatch({ type: "REMOVE_FAVORITE", payload: movieId });
+    await setDoc(
+      userDocRef,
+      {
+        favorites: arrayRemove(movieId),
+      },
+      { merge: true }
+    );
   };
 
   const renderFavoriteItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={themeStyles.favoriteCard}
       activeOpacity={0.8}
-      onPress={() => navigation.navigate('Details', { movieId: item.id })}
+      onPress={() => navigation.navigate("Details", { movieId: item.id })}
     >
-      <Image source={{ uri: getImageUrl(item.poster_path) || undefined }} style={themeStyles.favoritePoster} />
+      <Image
+        source={{ uri: getImageUrl(item.poster_path) || undefined }}
+        style={themeStyles.favoritePoster}
+      />
       <View style={themeStyles.favoriteOverlay}>
-        <TouchableOpacity onPress={() => removeFavorite(item.id)} style={themeStyles.favoriteHeartBtn}>
+        <TouchableOpacity
+          onPress={() => removeFavorite(item.id)}
+          style={themeStyles.favoriteHeartBtn}
+        >
           <Ionicons name="heart" size={24} color="red" />
         </TouchableOpacity>
       </View>
-      <Text style={themeStyles.favoriteTitle} numberOfLines={1}>{item.title}</Text>
+      <Text style={themeStyles.favoriteTitle} numberOfLines={1}>
+        {item.title}
+      </Text>
     </TouchableOpacity>
   );
 
-  const filteredFavorites = favorites.filter(movie => {
-    const genreMatch = selectedGenre ? movie.genres.some((genre: Genre) => genre.id === selectedGenre) : true;
-    const ratingMatch = selectedRating ? movie.vote_average >= selectedRating : true;
-    const searchMatch = searchQuery ? movie.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+  // Filter favorites based on search query, genre, and rating
+  const filteredFavorites = favorites.filter((movie) => {
+    const genreMatch = selectedGenre
+      ? movie.genres.some((genre: Genre) => genre.id === selectedGenre)
+      : true;
+    const ratingMatch = selectedRating
+      ? movie.vote_average >= selectedRating
+      : true;
+    const searchMatch = searchQuery
+      ? movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
     return genreMatch && ratingMatch && searchMatch;
   });
 
-  if (!filteredFavorites || filteredFavorites.length === 0) {
-    return (
-      <SafeAreaView style={themeStyles.favoriteCenterContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#121212" />
-        <Text style={themeStyles.favoriteEmptyText}>No favorites added yet.</Text>
-      </SafeAreaView>
-    );
-  }
+  const searchButtonAction = () => {
+    setSearchActive((prev) => !prev);
+    if (filterActive) {
+      setFilterActive(false);
+    }
+  };
+
+  const filterButtonAction = () => {
+    setFilterActive((prev) => !prev);
+    if (searchActive) {
+      setSearchActive(false);
+    }
+  };
 
   return (
     <SafeAreaView style={themeStyles.container}>
@@ -98,10 +128,16 @@ const FavoritesScreen: React.FC = () => {
 
       {/* Search and Filter Buttons */}
       <View style={themeStyles.searchMoviesButtonsRow}>
-        <TouchableOpacity onPress={() => setSearchActive(!searchActive)} style={themeStyles.searchMoviesBtn}>
+        <TouchableOpacity
+          onPress={searchButtonAction}
+          style={themeStyles.searchMoviesBtn}
+        >
           <Text style={themeStyles.searchMoviesBtnText}>Search</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setFilterActive(!filterActive)} style={themeStyles.searchMoviesBtn}>
+        <TouchableOpacity
+          onPress={filterButtonAction}
+          style={themeStyles.searchMoviesBtn}
+        >
           <Text style={themeStyles.searchMoviesBtnText}>Filter</Text>
         </TouchableOpacity>
       </View>
@@ -109,7 +145,12 @@ const FavoritesScreen: React.FC = () => {
       {/* Search Input */}
       {searchActive && (
         <View style={themeStyles.searchMoviesSearchContainer}>
-           <Ionicons name="search-outline" size={20} color="#888" style={themeStyles.searchMoviesSearchIcon} />
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color="#888"
+            style={themeStyles.searchMoviesSearchIcon}
+          />
           <TextInput
             style={themeStyles.searchMoviesTextInputWithIcon}
             placeholder="Search by title..."
@@ -119,7 +160,7 @@ const FavoritesScreen: React.FC = () => {
           {searchQuery.length > 0 && (
             <TouchableOpacity
               style={themeStyles.searchMoviesClearIconContainer}
-              onPress={() => setSearchQuery('')}
+              onPress={() => setSearchQuery("")}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="close-circle" size={22} color="#ff8c00" />
@@ -134,7 +175,7 @@ const FavoritesScreen: React.FC = () => {
           {/* Genre Dropdown */}
           <Dropdown
             style={themeStyles.searchMoviesDropdown}
-            data={genres}
+            data={[{ id: null, name: "Select Genre" }, ...genres]}
             labelField="name"
             valueField="id"
             placeholder="Select Genre"
@@ -150,13 +191,13 @@ const FavoritesScreen: React.FC = () => {
             showsVerticalScrollIndicator
             activeColor="#ff8c00"
             containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
-            itemTextStyle={{ color: '#fff'}}
+            itemTextStyle={{ color: "#fff" }}
           />
 
           {/* Rating Dropdown */}
           <Dropdown
             style={themeStyles.searchMoviesDropdown}
-            data={ratingOptions}
+            data={[{ label: "Select Rating", value: null }, ...ratingOptions]}
             labelField="label"
             valueField="value"
             placeholder="Select Rating"
@@ -172,8 +213,16 @@ const FavoritesScreen: React.FC = () => {
             showsVerticalScrollIndicator
             activeColor="#ff8c00"
             containerStyle={themeStyles.searchMoviesDropdownContainerStyle}
-            itemTextStyle={{ color: '#fff'}}
+            itemTextStyle={{ color: "#fff" }}
           />
+        </View>
+      )}
+
+      {filteredFavorites.length === 0 && (
+        <View style={themeStyles.favoriteCenterContainer}>
+          <Text style={themeStyles.favoriteEmptyText}>
+            No favorite films added yet.
+          </Text>
         </View>
       )}
 

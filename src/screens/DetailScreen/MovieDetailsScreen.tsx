@@ -19,9 +19,9 @@ import {
   CastMember,
   MovieDetails,
 } from "../../Api/Api";
-import { useGlobalState, useGlobalDispatch } from "../../Context/GlobalState";
+import { useGlobalState, useGlobalDispatch } from "../../context/GlobalState";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import themeStyles from "../../Theme/theme";
+import themeStyles from "../../theme/theme";
 import { doc, setDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { auth, db } from "../../Firebase/FirebaseConfig";
 
@@ -107,22 +107,19 @@ const MovieDetailsScreen: React.FC<{ route: any; navigation: any }> = ({
             homepage: movie.homepage,
           },
         });
-        // Add the movie ID to Firestore
         await setDoc(
           userDocRef,
           {
-            favorites: arrayUnion(movie.id), // Add the movie ID to favorites
+            favorites: arrayUnion(movie.id),
           },
           { merge: true }
         );
       } else {
-        // Remove from favorites
         dispatch({ type: "REMOVE_FAVORITE", payload: movie.id });
-        // Remove the movie ID from Firestore
         await setDoc(
           userDocRef,
           {
-            favorites: arrayRemove(movie.id), // Remove the movie ID from favorites
+            favorites: arrayRemove(movie.id),
           },
           { merge: true }
         );
@@ -145,7 +142,6 @@ const MovieDetailsScreen: React.FC<{ route: any; navigation: any }> = ({
   const handleDoubleTap = () => {
     const now = Date.now();
     if (lastTap && now - lastTap < 300) {
-      // Double tap detected
       toggleFavorite();
     } else {
       setLastTap(now);

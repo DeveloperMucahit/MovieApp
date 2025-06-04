@@ -18,17 +18,12 @@ import {
   Movie,
 } from '../../Api/Api';
 import { HomeStackParamList } from '../../AppNavigator/AppNavigator';
-import themeStyles from '../../Theme/theme';
+import themeStyles from '../../theme/theme';
 
 type MovieListScreenNavigationProp = StackNavigationProp<
   HomeStackParamList,
   'HomeMain'
 >;
-
-// TODOS:
-// 1. Refeshing animation ekleyeceğiz.
-// 2. Favorite sayfasına search ve Filter ekleyeceğiz.
-// 3. Login ve Register sayfalarını yapacağız.
 
 const MovieListScreen: React.FC = () => {
   const navigation = useNavigation<MovieListScreenNavigationProp>();
@@ -41,7 +36,7 @@ const MovieListScreen: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const MAX_PAGE = 500; // TMDb popular movies max pages
+    const MAX_PAGE = 500;
     const randomPage = Math.floor(Math.random() * MAX_PAGE) + 1;
     try {
       const response = await getPopularMovies(randomPage);
@@ -97,7 +92,7 @@ const MovieListScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={themeStyles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#121212" />
+      {/* <StatusBar barStyle="light-content" backgroundColor="#111" translucent /> */}
       <FlatList
         data={movies}
         keyExtractor={(item) => item.id.toString()}

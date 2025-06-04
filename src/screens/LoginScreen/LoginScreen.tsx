@@ -18,7 +18,7 @@ import { auth } from "../../Firebase/FirebaseConfig";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { HomeStackParamList } from "../../AppNavigator/AppNavigator"; // or wherever your stack params are defined
-import themeStyles from "../../Theme/theme";
+import themeStyles from "../../theme/theme";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 const LoginScreen: React.FC = () => {

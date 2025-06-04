@@ -1,13 +1,17 @@
 import React from "react";
-import { GlobalProvider } from "./Context/GlobalState";
+import { GlobalProvider } from "./context/GlobalState";
 import AppNavigator from "./AppNavigator/AppNavigator";
-const App: React.FC = () => {
- 
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
 
+const App: React.FC = () => {
   return (
-    <GlobalProvider>
-      <AppNavigator />
-    </GlobalProvider>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#121212" }}>
+      <GlobalProvider>
+        <AppNavigator />
+      </GlobalProvider>
+    </SafeAreaView>
   );
 };
 
